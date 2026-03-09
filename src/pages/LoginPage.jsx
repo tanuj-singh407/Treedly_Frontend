@@ -18,11 +18,11 @@ export default function LoginPage() {
           animate={{ rotateY: isLogin ? 0 : 180 }}
           transition={{ type: "spring", stiffness: 50, damping: 15 }}
           style={{ transformStyle: "preserve-3d" }}
-          className="relative w-full max-w-md h-[600px]" 
+          className="relative w-full max-w-2xl h-195" 
         >
           {/* FRONT SIDE: LOGIN */}
           <div 
-            className="absolute inset-0 w-full h-full bg-white p-8 shadow-xl rounded-2xl border border-gray-100"
+            className="absolute inset-0 w-full h-[90%] bg-white p-8 shadow-xl rounded-2xl border border-gray-100"
             style={{ backfaceVisibility: "hidden" }}
           >
             <RightPanel mode="login" setMode={setMode} />
