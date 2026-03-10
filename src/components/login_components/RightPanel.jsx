@@ -1,5 +1,9 @@
 import { useState } from "react";
 import RegisterForm from "./RegisterForm";
+import axios from "axios";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
 
 export default function RightPanel({ mode, setMode }) {
   const isLogin = mode === "login";
@@ -16,9 +20,71 @@ export default function RightPanel({ mode, setMode }) {
     preferredLanguage: "",
   });
 
-  const userRegisteration = (e) => {
-    console.log(formData, "formData", e.target.innerText)
-  }
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const navigate = useNavigate()
+
+  const userRegisteration = async () => {
+    try {
+
+      if (isLogin) {
+        // LOGIN VALIDATION
+        if (!formData.username || !formData.password) {
+          toast.error("Username and Password are required");
+          return;
+        }
+
+        const payload = {
+          username: formData.username,
+          password: formData.password,
+        };
+
+        const response = await axios.post(`${API_BASE_URL}/api/Auth/login`, payload);
+
+        toast.success("Login successful");
+
+        localStorage.setItem("token", response.data.token);
+        
+        navigate("/invoices");
+
+      } else {
+
+        // REGISTER VALIDATION
+        for (const key in formData) {
+          if (!formData[key]) {
+            toast.error(`${key} is required`);
+            return;
+          }
+        }
+
+        const response = await axios.post(`${API_BASE_URL}/api/Auth/register`, formData);
+
+        toast.success("Registration successful!");
+        console.log(response.data);
+
+        // reset form
+        setFormData({
+          username: "",
+          email: "",
+          password: "",
+          fullName: "",
+          mobileNumber: "",
+          businessName: "",
+          city: "",
+          billingRequirement: "",
+          majorCustomers: "",
+          preferredLanguage: "",
+        });
+      }
+
+    } catch (error) {
+      if (error.response?.data) {
+        toast.error(error.response.data);
+      } else {
+        toast.error("Something went wrong");
+      }
+    }
+  };
 
 
   return (
@@ -40,14 +106,23 @@ export default function RightPanel({ mode, setMode }) {
       {isLogin ? (
         <div className="space-y-4">
           <input
-            type="email"
-            placeholder="Email"
+            type="text"
+            placeholder="Username"
             className="input"
+            value={formData.username}
+            onChange={(e) =>
+              setFormData({ ...formData, username: e.target.value })
+            }
           />
+
           <input
             type="password"
             placeholder="Password"
             className="input"
+            value={formData.password}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
           />
         </div>
       ) : (
@@ -66,10 +141,10 @@ export default function RightPanel({ mode, setMode }) {
       )}
 
       <button
-        onClick={(e) => { userRegisteration(e) }}
-        className="w-full mt-6 bg-linear-to-r from-teal-500 to-green-500 text-white py-3 rounded-lg font-bold shadow-lg shadow-teal-500/20 hover:scale-[1.02] transition-transform cursor-pointer">
+        onClick={userRegisteration}
+        className="w-full mt-6 bg-linear-to-r from-teal-500 to-green-500 text-white py-3 rounded-lg font-bold shadow-lg shadow-teal-500/20 hover:scale-[1.02] transition-transform cursor-pointer"
+      >
         {isLogin ? "Sign in →" : "Register Account"}
-
       </button>
     </div>
   );

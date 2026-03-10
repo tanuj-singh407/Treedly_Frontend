@@ -1,22 +1,33 @@
-import { Routes, Route } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import { UserRoutes } from './routes/UserRoutes';
-// import Dashboard from './pages/Dashboard'; // Future page
+import { Routes, Route } from "react-router-dom";
+import { UserRoutes } from "./routes/UserRoutes";
+import { DashboardRoutes } from "./routes/DashboardRoutes";
+
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (
     <div className="app-container">
-      {/* If you want a Navbar on every page, put it HERE */}
+
       <Routes>
+
         {UserRoutes.map((route, index) => (
-          <Route
-            key={index}
-            path={route.path}
-            element={route.element}
-          />
+          <Route key={index} path={route.path} element={route.element} />
         ))}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        {console.log(DashboardRoutes.path, "----------")}
+        <Route
+          path={DashboardRoutes.path}
+          element={DashboardRoutes.element}
+        >
+          {DashboardRoutes.children.map((route, index) => (
+            <Route key={index} path={route.path} element={route.element} />
+          ))}
+        </Route>
+
       </Routes>
+
+      <ToastContainer position="top-right" autoClose={3000} theme="colored" />
+
     </div>
   );
 }
