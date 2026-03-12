@@ -1,4 +1,9 @@
+import { useNavigate } from "react-router-dom";
+
 export default function InvoicesPage() {
+
+  const navigate = useNavigate();
+
   return (
     <div>
 
@@ -10,7 +15,10 @@ export default function InvoicesPage() {
           No invoices found
         </p>
 
-        <button className="bg-teal-500 text-white px-4 py-2 rounded">
+        <button
+          onClick={() => navigate("/invoices/create")}
+          className="bg-teal-500 text-white px-4 py-2 rounded"
+        >
           Create Invoice
         </button>
 

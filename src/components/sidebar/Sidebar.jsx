@@ -13,7 +13,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-64 h-screen bg-[#0f1e3a] text-white flex flex-col">
+    <div className="w-64 min-h-screen bg-[#0f1e3a] text-white flex flex-col">
 
       {/* Logo */}
       <div className="flex justify-center items-center p-6 border-b border-gray-700">
@@ -21,15 +21,18 @@ export default function Sidebar() {
       </div>
 
       {/* Menu */}
-      <div className="flex flex-col p-4 gap-2">
+      <div className="flex flex-col p-4 gap-3">
+
+        {/* SELLS */}
+        <p className="text-xs text-gray-400 uppercase px-2">Sells</p>
 
         <NavLink
-          to="/dashboard"
+          to="/estimates"
           className={({ isActive }) =>
             `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`
           }
         >
-          Dashboard
+          Estimate
         </NavLink>
 
         <NavLink
@@ -38,49 +41,37 @@ export default function Sidebar() {
             `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`
           }
         >
-          Invoices
+          Invoice
         </NavLink>
 
         <NavLink
-          to="/estimates"
+          to="/eway-bill"
           className={({ isActive }) =>
             `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`
           }
         >
-          Estimates
+          E-way Bill
         </NavLink>
 
         <NavLink
-          to="/purchases"
+          to="/return-invoice"
           className={({ isActive }) =>
             `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`
           }
         >
-          Purchases
+          Return Invoice
         </NavLink>
 
+        {/* PURCHASE */}
+        <p className="text-xs text-gray-400 uppercase px-2 mt-4">Purchase</p>
+
         <NavLink
-          to="/scan"
+          to="/scan-bill"
           className={({ isActive }) =>
             `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`
           }
         >
-          Scan Bill
-        </NavLink>
-
-        <NavLink
-          to="/gst"
-          className={({ isActive }) =>
-            `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`
-          }
-        >
-          GST Filing
-        </NavLink>
-
-        <NavLink
-          to="/profile"
-          className={({ isActive }) => `${baseStyle} ${isActive ? "bg-teal-500" : "hover:bg-teal-600"}`}>
-          Profile
+          Scan Bill / Upload Bill
         </NavLink>
 
       </div>
