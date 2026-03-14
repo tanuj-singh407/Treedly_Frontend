@@ -8,20 +8,20 @@ export default function LoginPage() {
   const isLogin = mode === "login";
 
   return (
-    <div className="min-h-screen flex bg-white overflow-hidden">
+    <div className="min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
       <LeftPanel />
 
       {/* Perspective Container */}
       <div className="w-1/2 flex items-center justify-center bg-gray-50" style={{ perspective: "1200px" }}>
-        
+
         <motion.div
           animate={{ rotateY: isLogin ? 0 : 180 }}
           transition={{ type: "spring", stiffness: 50, damping: 15 }}
           style={{ transformStyle: "preserve-3d" }}
-          className="relative w-full max-w-2xl h-195" 
+          className="relative w-full max-w-2xl h-195"
         >
           {/* FRONT SIDE: LOGIN */}
-          <div 
+          <div
             className="absolute inset-0 w-full h-[90%] bg-white p-8 shadow-xl rounded-2xl border border-gray-100"
             style={{ backfaceVisibility: "hidden" }}
           >
@@ -29,16 +29,16 @@ export default function LoginPage() {
           </div>
 
           {/* BACK SIDE: REGISTER */}
-          <div 
+          <div
             className="absolute inset-0 w-full h-full bg-white p-8 shadow-xl rounded-2xl border border-gray-100"
-            style={{ 
-              backfaceVisibility: "hidden", 
-              transform: "rotateY(180deg)" 
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)"
             }}
           >
             <RightPanel mode="register" setMode={setMode} />
           </div>
-          
+
         </motion.div>
       </div>
     </div>

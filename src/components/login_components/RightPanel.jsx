@@ -44,7 +44,7 @@ export default function RightPanel({ mode, setMode }) {
         toast.success("Login successful");
 
         localStorage.setItem("token", response.data.token);
-        
+
         navigate("/invoices");
 
       } else {

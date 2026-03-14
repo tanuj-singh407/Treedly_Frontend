@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
-import logo from "../assets/treedly-logo.png";
-import { Plus, Trash2, FileText, Truck, User, CreditCard, Send } from "lucide-react";
-import axios from "axios";
+import { FileText } from "lucide-react";
 import api from "../api/apiClient";
+
+import InvoiceHeader from "../components/invoice/InvoiceHeader";
+import BuyerSection from "../components/invoice/BuyerSection";
+import ConsigneeSection from "../components/invoice/ConsigneeSection";
+import ItemsTable from "../components/invoice/ItemsTable";
+import PaymentSection from "../components/invoice/PaymentSection";
+import TotalsSection from "../components/invoice/TotalsSection";
+import InvoiceActions from "../components/invoice/InvoiceActions";
 
 export default function CreateInvoicePage() {
 
@@ -10,18 +16,28 @@ export default function CreateInvoicePage() {
     const [consignees, setConsignees] = useState([]);
 
     const [buyerId, setBuyerId] = useState(null);
+    const [consigneeId, setConsigneeId] = useState(null);
 
     const [buyerDetails, setBuyerDetails] = useState({
-        name: "",
-        address: "",
-        gstin: ""
+        name: "", address: "",
+        gstin: "", country: "",
+        state: "", city: "",
+        zipCode: "", contactName: "",
+        email: ""
     });
 
     const [consigneeDetails, setConsigneeDetails] = useState({
-        name: "",
-        address: "",
-        gstin: ""
+        name: "", address: "", gstin: "",
+        country: "", state: "", city: "",
+        zipCode: "", dispatchedBy: "", paymentTerms: ""
     });
+
+    const [items, setItems] = useState([]);
+
+    const [toCollect, setToCollect] = useState(false);
+    const [pendingAmountToCollect, setPendingAmountToCollect] = useState("");
+
+    /* ---------------- FETCH DATA ---------------- */
 
     useEffect(() => {
         fetchBuyers();
@@ -29,22 +45,24 @@ export default function CreateInvoicePage() {
     }, []);
 
     const fetchBuyers = async () => {
-
-        const res = await api.get(`/api/Customers/buyers`);
-        console.log(res.data, "buyers")
-        setBuyers(data);
+        try {
+            const res = await api.get("/api/Customers/buyers");
+            setBuyers(res.data);
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const fetchConsignees = async () => {
-        const res = await api.get(`/api/Customers/consignees`);
-        console.log(res, "consignees")
-        setConsignees(data);
+        try {
+            const res = await api.get("/api/Customers/consignees");
+            setConsignees(res.data);
+        } catch (err) {
+            console.error(err);
+        }
     };
 
-    const [items, setItems] = useState([]);
-
-    const [toCollect, setToCollect] = useState(false);
-    const [pendingAmountToCollect, setPendingAmountToCollect] = useState("");
+    /* ---------------- ITEMS ---------------- */
 
     const addItem = () => {
         setItems([
@@ -56,362 +74,157 @@ export default function CreateInvoicePage() {
                 unit: "Nos",
                 unitPrice: 0,
                 gstPercentage: 18,
-            },
+                discount: 0 // ✅ add discount field
+            }
         ]);
+    };
+
+    const updateItem = (index, field, value) => {
+        const updated = [...items];
+        updated[index][field] = value;
+        setItems(updated);
     };
 
     const removeItem = (index) => {
         setItems(items.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
+    /* ---------------- SUBMIT ---------------- */
+
+    /* ---------------- SUBMIT ---------------- */
+
+    const handleSubmit = async () => {
         if (toCollect && !pendingAmountToCollect) {
             alert("Pending Amount To Collect is required");
             return;
         }
 
+        // Construct payload matching backend API
         const payload = {
-            toCollect,
-            pendingAmountToCollect: toCollect ? Number(pendingAmountToCollect) : 0,
+            companyProfileId: 0, // replace with actual company ID if needed
+            customerId: buyerId || 0,
+            consigneeDetailsId: consigneeId || 0,
+            consignee: { ...consigneeDetails },
+            buyerDetailsId: buyerId || 0,
+            buyer: { ...buyerDetails },
+            poNumber: "",         // Add PO Number state if needed
+            poDate: new Date().toISOString(),
+            eWayBillNumber: "",   // Add eWayBillNumber state if needed
+            dispatchedBy: consigneeDetails.dispatchedBy || "",
+            paymentTerms: consigneeDetails.paymentTerms || "",
+            shippingCharges: 0,   // optional
+            toCollect: Boolean(toCollect),
+            pendingAmountToCollect: toCollect
+                ? Number(pendingAmountToCollect)
+                : 0,
+            items: items.map(item => ({
+                productId: 0, // replace if you have product IDs
+                descriptionOfGoods: item.descriptionOfGoods,
+                hsn_SAC: item.hsn_sac,
+                quantity: Number(item.quantity),
+                unit: item.unit || "Nos",
+                unitPrice: Number(item.unitPrice),
+                discount: Number(item.discount || 0),
+                gstPercentage: Number(item.gstPercentage || 0)
+            }))
         };
 
-        console.log(payload);
+        try {
+            await api.post("/api/Invoices", payload);
+            alert("Invoice Created Successfully");
+            // Optionally clear form or navigate
+        } catch (error) {
+            console.error(error);
+            alert("Failed to create invoice");
+        }
     };
+
+    /* ---------------- UI ---------------- */
 
     return (
         <div className="bg-[#f8fafc] min-h-screen py-10 px-4 sm:px-8">
+
             <div className="max-w-5xl mx-auto">
 
-                {/* TOP BAR / BREADCRUMB */}
+                {/* Breadcrumb */}
+
                 <div className="flex justify-between items-center mb-6">
+
                     <div className="flex items-center gap-2 text-slate-500">
                         <FileText size={18} />
-                        <span className="text-sm font-medium">Invoices / New Invoice</span>
+                        <span className="text-sm font-medium">
+                            Invoices / New Invoice
+                        </span>
                     </div>
-                    <div className="text-sm text-slate-400">Draft saved at 10:45 AM</div>
+
+                    <div className="text-sm text-slate-400">
+                        Draft saved
+                    </div>
+
                 </div>
+
+                {/* Invoice Card */}
 
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 
-                    {/* HEADER SECTION */}
-                    <div className="bg-slate-900 p-8 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div className="flex items-center gap-5">
-                            {/* Logo Container: Added white background and padding to ensure visibility */}
-                            <div className="bg-[#0f1e3a] p-3 rounded-xl shadow-inner flex items-center justify-center min-w-15">
-                                <img
-                                    src={logo}
-                                    className="h-12 w-auto object-contain"
-                                    alt="Treedly Logo"
-                                // If the logo is still hard to see, you can add: 
-                                // style={{ filter: 'brightness(1)' }} 
-                                />
-                            </div>
-
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-2xl font-bold tracking-tight">CodeGo Trendz</h2>
-                                    <span className="bg-teal-500/20 text-teal-400 text-[10px] uppercase px-2 py-0.5 rounded border border-teal-500/30">Verified</span>
-                                </div>
-                                <div className="flex flex-col text-slate-400 text-xs mt-1">
-                                    <span>123 Tech Street, Code Land</span>
-                                    <span className="font-mono text-teal-500/80">GSTIN: 27ABCDG1234H1Z3</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="text-right border-l border-slate-700 pl-6 hidden md:block">
-                            <h1 className="text-3xl font-light uppercase tracking-[0.2em] text-slate-400">Invoice</h1>
-                            <div className="flex items-center justify-end gap-2 mt-1">
-                                <span className="text-xs text-slate-500 uppercase font-bold">Number</span>
-                                <p className="text-teal-500 font-mono font-bold">#INV-2026-001</p>
-                            </div>
-                        </div>
-                    </div>
+                    <InvoiceHeader />
 
                     <div className="p-8 space-y-10">
 
-                        {/* PARTIES SECTION */}
+                        {/* Buyer + Consignee */}
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                                    <User size={18} className="text-teal-600" />
-                                    <h3 className="font-semibold text-slate-800">Bill To</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    <input
-                                        list="buyers"
-                                        placeholder="Search Buyer"
-                                        value={buyerDetails.name}
-                                        onChange={(e) => {
-                                            const name = e.target.value;
 
-                                            const selected = buyers.find(b => b.name === name);
+                            <BuyerSection
+                                buyers={buyers}
+                                buyerDetails={buyerDetails}
+                                setBuyerDetails={setBuyerDetails}
+                                setBuyerId={setBuyerId}
+                            />
 
-                                            if (selected) {
-                                                setBuyerId(selected.id);
+                            <ConsigneeSection
+                                consignees={consignees}
+                                consigneeDetails={consigneeDetails}
+                                setConsigneeDetails={setConsigneeDetails}
+                                setConsigneeId={setConsigneeId}
+                            />
 
-                                                setBuyerDetails({
-                                                    name: selected.name,
-                                                    address: selected.address,
-                                                    gstin: selected.gstin
-                                                });
-                                            } else {
-                                                setBuyerId(null);
-
-                                                setBuyerDetails({
-                                                    ...buyerDetails,
-                                                    name
-                                                });
-                                            }
-                                        }}
-                                        className="w-full px-4 py-2 rounded-lg border border-slate-200"
-                                    />
-
-                                    <datalist id="buyers">
-                                        {buyers.map(b => (
-                                            <option key={b.id} value={b.name} />
-                                        ))}
-                                    </datalist>
-
-                                    <textarea placeholder="Full Address" rows="3"
-                                        className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all resize-none"
-                                        value={buyerDetails.address}
-                                        onChange={(e) =>
-                                            setBuyerDetails({
-                                                ...buyerDetails,
-                                                address: e.target.value
-                                            })
-                                        }
-
-                                    />
-                                    <input placeholder="Buyer GSTIN" className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
-                                        value={buyerDetails.gstin}
-                                        onChange={(e) =>
-                                            setBuyerDetails({
-                                                ...buyerDetails,
-                                                gstin: e.target.value
-                                            })
-                                        }
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                                    <Truck size={18} className="text-teal-600" />
-                                    <h3 className="font-semibold text-slate-800">Ship To</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    <input
-                                        className="w-full px-4 py-2 rounded-lg border border-slate-200"
-                                        list="consignees"
-                                        placeholder="Search Consignee"
-                                        value={consigneeDetails.name}
-                                        onChange={(e) => {
-                                            const name = e.target.value;
-
-                                            const selected = consignees.find(c => c.name === name);
-
-                                            if (selected) {
-                                                setConsigneeDetailsId(selected.id);
-
-                                                setConsigneeDetails({
-                                                    name: selected.name,
-                                                    address: selected.address,
-                                                    gstin: selected.gstin
-                                                });
-                                            } else {
-                                                setConsigneeDetailsId(null);
-
-                                                setConsigneeDetails({
-                                                    ...consigneeDetails,
-                                                    name
-                                                });
-                                            }
-                                        }}
-                                    />
-
-                                    <datalist id="consignees">
-                                        {consignees.map(c => (
-                                            <option key={c.id} value={c.name} />
-                                        ))}
-                                    </datalist>
-
-                                    <textarea placeholder="Shipping Address" rows="3" className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all resize-none" />
-                                    <input placeholder="Shipping GSTIN" className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all" />
-                                </div>
-                            </div>
                         </div>
 
-                        {/* ORDER LOGISTICS */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">PO Number</label>
-                                <input placeholder="PO-9921" className="w-full px-3 py-2 bg-white rounded-md border border-slate-200 text-sm focus:border-teal-500 outline-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Invoice Date</label>
-                                <input type="date" className="w-full px-3 py-2 bg-white rounded-md border border-slate-200 text-sm focus:border-teal-500 outline-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">E-Way Bill</label>
-                                <input placeholder="Optional" className="w-full px-3 py-2 bg-white rounded-md border border-slate-200 text-sm focus:border-teal-500 outline-none" />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Dispatch Mode</label>
-                                <input placeholder="Road / Air" className="w-full px-3 py-2 bg-white rounded-md border border-slate-200 text-sm focus:border-teal-500 outline-none" />
-                            </div>
+                        {/* Items */}
+
+                        <ItemsTable
+                            items={items}
+                            addItem={addItem}
+                            updateItem={updateItem}
+                            removeItem={removeItem}
+                        />
+
+                        {/* Payment + Totals */}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                            <PaymentSection
+                                toCollect={toCollect}
+                                setToCollect={setToCollect}
+                                pendingAmountToCollect={pendingAmountToCollect}
+                                setPendingAmountToCollect={setPendingAmountToCollect}
+                            />
+
+                            <TotalsSection items={items} />
+
                         </div>
 
-                        {/* ITEMS TABLE */}
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-end">
-                                <h3 className="font-bold text-slate-800 text-lg">Line Items</h3>
-                                <button
-                                    onClick={addItem}
-                                    className="group flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-2 rounded-lg border border-teal-200 hover:bg-teal-600 hover:text-white transition-all text-sm font-semibold"
-                                >
-                                    <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-                                    Add New Item
-                                </button>
-                            </div>
+                        {/* Actions */}
 
-                            <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                                        <tr>
-                                            <th className="p-4 font-semibold text-xs uppercase tracking-wider w-1/3">Description</th>
-                                            <th className="p-4 font-semibold text-xs uppercase tracking-wider">HSN</th>
-                                            <th className="p-4 font-semibold text-xs uppercase tracking-wider">Qty</th>
-                                            <th className="p-4 font-semibold text-xs uppercase tracking-wider">Rate</th>
-                                            <th className="p-4 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {items.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="5" className="p-12 text-center text-slate-400 italic">
-                                                    No items added. Click "Add New Item" to start.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            items.map((item, index) => (
-                                                <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="p-3">
-                                                        <input placeholder="Service or Product name" className="w-full bg-transparent border-b border-transparent focus:border-teal-500 p-1 outline-none" />
-                                                    </td>
-                                                    <td className="p-3 text-sm">
-                                                        <input placeholder="0000" className="w-20 bg-transparent border-b border-transparent focus:border-teal-500 p-1 outline-none" />
-                                                    </td>
-                                                    <td className="p-3">
-                                                        <input type="number" defaultValue={1} className="w-16 bg-transparent border-b border-transparent focus:border-teal-500 p-1 outline-none" />
-                                                    </td>
-                                                    <td className="p-3">
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-slate-400">₹</span>
-                                                            <input type="number" placeholder="0.00" className="w-24 bg-transparent border-b border-transparent focus:border-teal-500 p-1 outline-none" />
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-3 text-right">
-                                                        <button onClick={() => removeItem(index)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* TOTALS & SUMMARY */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                                    <CreditCard size={18} className="text-teal-600" />
-                                    <h3 className="font-semibold text-slate-800">Payment Info</h3>
-                                </div>
-                                <input placeholder="Payment Terms (e.g. Net 30)" className="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-teal-500" />
-                                {/* TO COLLECT FIELD */}
-                                <div className="space-y-3">
-
-                                    <div className="flex items-center gap-4">
-                                        <label className="text-sm font-semibold text-slate-700">
-                                            To Collect
-                                        </label>
-
-                                        <select
-                                            value={toCollect}
-                                            onChange={(e) => setToCollect(e.target.value === "true")}
-                                            className="px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-teal-500"
-                                        >
-                                            <option value="false">False</option>
-                                            <option value="true">True</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Pending Amount (Only if To Collect = true) */}
-                                    {toCollect && (
-                                        <div>
-                                            <label className="text-xs uppercase font-bold text-slate-500">
-                                                Pending Amount To Collect
-                                            </label>
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <span className="text-slate-400">₹</span>
-                                                <input
-                                                    type="number"
-                                                    value={pendingAmountToCollect}
-                                                    onChange={(e) => setPendingAmountToCollect(e.target.value)}
-                                                    required={toCollect}
-                                                    placeholder="Enter pending amount"
-                                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-teal-500"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <textarea placeholder="Notes / Bank Details" className="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-teal-500 h-20" />
-                            </div>
-
-                            <div className="bg-slate-50 rounded-2xl p-6 space-y-3">
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Subtotal</span>
-                                    <span className="font-semibold">₹ 0.00</span>
-                                </div>
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Shipping</span>
-                                    <input type="number" placeholder="0.00" className="w-20 text-right bg-transparent border-b border-slate-300 focus:border-teal-500 outline-none" />
-                                </div>
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Tax (GST)</span>
-                                    <span className="font-semibold">₹ 0.00</span>
-                                </div>
-                                <div className="h-px bg-slate-200 my-2"></div>
-                                <div className="flex justify-between text-slate-900 text-xl font-bold">
-                                    <span>Total Amount</span>
-                                    <span className="text-teal-700">₹ 0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ACTION BUTTONS */}
-                        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
-                            <button className="px-8 py-3 rounded-xl font-semibold text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
-                                Discard Draft
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                className="flex items-center justify-center gap-2 bg-teal-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg shadow-teal-200 hover:bg-teal-700 hover:-translate-y-0.5 transition-all">
-                                <Send size={18} />
-                                Generate & Save
-                            </button>
-                        </div>
+                        <InvoiceActions handleSubmit={handleSubmit} />
 
                     </div>
+
                 </div>
+
             </div>
+
         </div>
     );
 }
